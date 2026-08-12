@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Config System"
+  short_description: "Explain and edit Codex configuration safely"
+  default_prompt: "Use $codex-config-system to explain, edit, or troubleshoot Codex configuration."
