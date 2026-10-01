@@ -1,13 +1,18 @@
 ---
 name: markdown-kanban
-description: Initialize and maintain a reusable Markdown Kanban requirements workflow for software projects. Use when the user wants project planning, requirement management, task cards, markdown issue files, Kanban boards, lightweight sprint tracking, review/QA/acceptance workflow, or asks to manage work under docs/kanban.
+description: Initialize and maintain a two-state Markdown Kanban workflow (Todo | Done) for AI-agent-driven software projects. Use when the user wants project planning, requirement management, task cards, markdown issue files, a kanban board, lightweight work tracking under docs/kanban, or session-based task discipline with definition-of-done gating.
 ---
 
 # Markdown Kanban Skill
 
-Use this skill to set up and operate a project-agnostic Markdown Kanban workflow inside any software repository.
+Use this skill to set up and operate a lightweight Markdown Kanban workflow inside any software repository, designed for AI-agent-driven development where one task is typically completed within one session.
 
-The goal is a lightweight requirements management system that works well for AI-agent-driven development: every meaningful feature, bug, refactor, release task, or QA task has a persistent Markdown card, and the board shows status at a glance.
+The design is deliberately minimal:
+
+- The board has exactly two columns: `Todo` and `Done`. No In Progress, no review/QA columns.
+- `board.md` is only an index. Issue files carry all details and are the source of truth.
+- `roadmap.md` holds long-term direction so future work survives across sessions.
+- The only gate between `Todo` and `Done` is the card's Definition of Done checklist, verified by checkable artifacts — never by role-play.
 
 ## Directory layout
 
@@ -18,15 +23,16 @@ docs/kanban/
 ├── roadmap.md
 ├── board.md
 ├── issues/
-│   └── <ID>-<slug>.md
+│   ├── <ID>-<slug>.md
+│   └── archive/        # optional: retired Done cards move here
 └── templates/
     └── issue-template.md
 ```
 
-- `docs/kanban/roadmap.md` preserves long-term goals, milestones, themes, and future candidate work across sessions.
-- `docs/kanban/board.md` is the source of truth for board columns and card status.
-- `docs/kanban/issues/` stores one detailed Markdown issue file per task.
-- `docs/kanban/templates/issue-template.md` stores the reusable issue template.
+- `docs/kanban/roadmap.md` — long-term goals, milestones, themes, candidate work.
+- `docs/kanban/board.md` — index of current cards, two columns only.
+- `docs/kanban/issues/` — one detailed Markdown file per card; `archive/` for retired Done cards.
+- `docs/kanban/templates/issue-template.md` — the reusable card template.
 
 If a repository already has another planning system, do not overwrite it blindly. Read it first and either integrate with it or ask the user how to proceed.
 
@@ -34,31 +40,36 @@ If a repository already has another planning system, do not overwrite it blindly
 
 Use two planning layers instead of turning every future idea into a detailed card immediately:
 
-1. `roadmap.md` — long-term direction, milestones, epics, themes, and candidate work. This prevents long-term goals from being lost when a new agent session starts.
-2. `board.md` + `issues/` — executable work for the current and near-future cycles.
+1. `roadmap.md` — long-term direction, milestones, epics, themes, candidate work. This prevents long-term goals from being lost when a new agent session starts.
+2. `board.md` + `issues/` — executable work for the current and near-term cycles.
 
-Do not create detailed issue cards for every possible future requirement at once. Detailed cards are expensive to maintain and quickly become stale. Prefer this rule:
+Do not create detailed cards for every possible future requirement at once; they are expensive to maintain and quickly go stale. Instead:
 
-- Keep `roadmap.md` broad enough to cover the long-term product direction.
-- Keep detailed issue cards focused on the current 1–2 iterations or the next 5–10 actionable items.
-- Convert roadmap items into detailed issue cards only when they become near-term work or need concrete acceptance criteria.
+- Keep `roadmap.md` broad: themes, milestones, parking lot.
+- Keep the board focused on the next 5–10 actionable items or the current 1–2 iterations.
+- Convert a roadmap item into a card only when it becomes near-term work.
 - Use discovery/spike cards for uncertain work before committing to implementation cards.
 
-## Board columns
+The board holds only executable work. Anything not yet actionable stays in `roadmap.md` — there is no Backlog column.
 
-Use these project-level columns:
+## Board
 
-1. `Backlog` — requirement pool, not committed to the current cycle.
-2. `To Do` — selected for the current sprint/cycle.
-3. `In Progress` — active development.
-4. `In Review` — implementation complete, under code/design review.
-5. `Testing / QA` — QA is executing test cases and recording bugs.
-6. `Blocked` — cannot proceed due to a dependency or decision.
-7. `Done` — accepted by product/maintainer.
+`board.md` has exactly two columns:
+
+| Column | Meaning |
+|---|---|
+| `Todo` | Actionable work, including cards resumed after an interrupted session. |
+| `Done` | Definition of Done fully verified. |
+
+Hard rules:
+
+- No other columns exist. "Blocked" and "waiting for user input" are fields on the card, not states.
+- Moving a card means editing its row in `board.md` AND the `status` field in the issue file in the same operation. Never update one without the other.
+- When `Done` grows past ~20 rows, move the oldest rows out of the board and move their issue files to `issues/archive/`. Do not delete issue files outright.
 
 ## Task ID convention
 
-Use stable task IDs. Prefer type-based prefixes:
+Use stable, type-based IDs:
 
 | Prefix | Meaning |
 |---|---|
@@ -72,171 +83,85 @@ Use stable task IDs. Prefer type-based prefixes:
 | `P-` | Packaging/release |
 | `DOC-` | Documentation |
 
-Examples:
+File name: `<ID>-<slug>.md`, for example `F-001-user-authentication.md` or `B-001-fix-startup-crash.md`. IDs are never reused. If no prefix clearly fits, use `F-` for user-facing functionality or `Q-` for internal quality work.
 
-- `F-001-user-authentication.md`
-- `B-001-fix-startup-crash.md`
-- `R-001-daily-usage-table.md`
-- `P-001-windows-publish.md`
+## Card fields (staged, not all at birth)
 
-If no prefix clearly fits, use `F-` for user-facing functionality or `Q-` for internal quality work.
+A card is filled in progressively; do not demand every field when creating it.
 
-## Required fields for every task card
+Required at creation (`Todo`):
 
-Each task issue file must include:
+- Front matter: `id`, `title`, `type`, `priority`, `size`, `status`, `created`, `updated`
+- `Goal` — the outcome in one or two sentences
+- `Acceptance Criteria` — outcome-focused, checkbox list
 
-- `ID`
-- `Title`
-- `Type`
-- `Priority`
-- `Status`
-- `Size`
-- `Milestone`
-- `Developer`
-- `Reviewer`
-- `QA`
-- `Maintainer`
-- `Goal`
-- `Background`
-- `Scope`
-- `Subtasks`
-- `Acceptance Criteria`
-- `Test Cases`
-- `Related Files`
-- `Dependencies`
-- `Development Log`
-- `Review Notes`
-- `QA Notes`
-- `Bugs`
-- `Acceptance Notes`
+Required before `Done`:
+
+- `Subtasks` checked, or explicitly deferred with a written reason
+- `Test Cases` executed with recorded results, or a note explaining why tests do not apply
+- `Verification` — related files, how to run/verify, actual results
+- `Bugs` resolved or explicitly deferred
+- `updated` date refreshed
+
+Optional at any time: `Background`, `Dependencies`. `Development Log` becomes required once work starts.
 
 ### Priority
 
-Use priority for urgency/importance, not effort:
-
-- `P0` — production/blocking issue; must be handled immediately.
+- `P0` — production/blocking issue; handle immediately.
 - `P1` — required for the current milestone.
-- `P2` — important but can be scheduled after P1 work.
+- `P2` — important, can follow P1 work.
 - `P3` — nice-to-have or polish.
 
 ### Size
 
-Use size for rough complexity:
-
-- `S` — small, usually one focused change.
-- `M` — medium, multiple steps/files but limited scope.
-- `L` — large, cross-cutting or uncertain; consider splitting.
+- `S` — one focused change.
+- `M` — multiple steps or files, limited scope.
+- `L` — cross-cutting or uncertain. An `L` card must be split into independently acceptable `S`/`M` cards before work starts.
 
 ### Bug severity
 
-Record QA bugs as:
-
-- `P0` — blocks the main flow, crash/data loss/security issue; must be fixed before Done.
+- `P0` — main flow broken, crash, data loss, or security issue. Blocks `Done`.
 - `P1` — significant defect; fix or explicitly defer with rationale.
-- `P2` — minor bug/polish; may be deferred.
+- `P2` — minor bug or polish; may be deferred.
 
-## Agent role simulation
+## Definition of Done (the only gate)
 
-The agent may act in multiple workflow roles for solo or small projects:
+A card moves `Todo` → `Done` only when all of the following are verifiable in its issue file:
 
-- `Developer` — implements and writes/updates tests where applicable.
-- `Reviewer` — reviews changes, checks risk, and records comments.
-- `QA` — executes documented test cases and records bugs.
-- `Maintainer` / `Product Manager` — verifies acceptance criteria and moves work to Done.
+1. Every subtask checkbox is checked, or deferred with a written reason.
+2. Test cases have recorded results (pass/fail), or a note explains why tests do not apply.
+3. Every acceptance criterion checkbox is checked.
+4. No open `P0` bugs; `P1` bugs are fixed or deferred with rationale.
+5. `Verification` records related files and how to run/verify.
 
-Be explicit that this is a process simulation and not independent third-party review. It helps enforce discipline, but it does not replace a real human reviewer or QA tester when those are required.
+Do not simulate Reviewer/QA/Maintainer roles to pass this gate. The gate is the checklist plus recorded artifacts, not role-play. If a step genuinely needs human judgment (design approval, product sign-off), set the `blocked` field with `owner: user`, ask the user, and leave the card in `Todo` until they answer.
 
-## Strict status rules
+## Blocked and waiting-on-user
 
-### Backlog → To Do
+Blocked is a field, not a state. A blocked card stays in `Todo` with its `blocked` front matter filled in:
 
-Move a task to `To Do` when it is selected for the current work cycle and has enough detail to start.
+- `reason` — what is blocking.
+- `unblock` — what must be true to continue.
+- `owner` — who acts next (usually the user or an external dependency).
 
-Before moving to `To Do`, ensure:
+Show the short reason in the card's `Blocked` board cell. Clear the field when resolved. A blocked card does not block the rest of the board.
 
-- Goal is clear.
-- Acceptance Criteria exist.
-- Test Cases exist or the issue explains why tests are not applicable.
-- Dependencies are listed.
+## Session protocol
 
-### To Do → In Progress
+Tasks are typically completed within one session, so state management happens at session boundaries.
 
-Move a task to `In Progress` when development starts.
+### Session start
 
-When entering `In Progress`:
+1. Read `board.md` (and `roadmap.md` when planning).
+2. Pick exactly one card: prefer one with checked subtasks but unchecked acceptance criteria (an interrupted session's leftover); otherwise the highest-priority card whose dependencies are resolved.
+3. Work on it. Do not open a second card before the first is `Done` or carries a resume note in its log.
 
-- Set `Developer`.
-- Add a `Development Log` entry with date and intended approach.
-- Keep `board.md` and the issue file in sync.
+### Session close (always — including when stopping early or being interrupted)
 
-### In Progress → In Review
-
-Move to `In Review` only when implementation is complete.
-
-Developer responsibilities:
-
-- Complete the subtasks or record deferred items.
-- Add/update unit tests where applicable.
-- Run relevant checks and record results.
-- Add a review summary containing:
-  - Modification points.
-  - How to run/test.
-  - Impact area.
-  - Regression risk.
-
-If there is no actual pull request, record a `PR-equivalent Review Summary` in the issue file.
-
-### In Review → Testing / QA
-
-Reviewer responsibilities:
-
-- Check the implementation against the goal and acceptance criteria.
-- Check code clarity and maintainability.
-- Check likely regression areas.
-- Record `Approved` or `Request Changes` in `Review Notes`.
-
-At least one reviewer approval is required before moving to `Testing / QA`. In solo-agent workflows, the agent can switch to `Reviewer` role and explicitly mark this as simulated review.
-
-### Testing / QA → Done or In Progress
-
-QA responsibilities:
-
-- Execute each documented test case.
-- Record pass/fail results in `QA Notes`.
-- Record bugs under `Bugs` with severity `P0/P1/P2`.
-
-Rules:
-
-- All `P0` bugs must be fixed before Done.
-- `P1` bugs must be fixed or explicitly deferred with maintainer/product rationale.
-- `P2` bugs may be fixed or deferred.
-- When testing passes, write `QA Passed` in `QA Notes`.
-
-If bugs require code changes, move the card back to `In Progress` and continue the cycle.
-
-### Testing / QA → Done
-
-Maintainer/Product responsibilities:
-
-- Verify every Acceptance Criterion.
-- Check QA status.
-- Record final acceptance notes.
-- Move the task to `Done` only after acceptance passes.
-
-In solo-agent workflows, the agent may simulate Maintainer/Product acceptance, but must say it is simulated.
-
-### Any state → Blocked
-
-Move to `Blocked` when progress cannot continue.
-
-Record:
-
-- Blocker description.
-- Owner of the unblock action.
-- Next decision/action needed.
-- Date blocked.
-
-Move back to the appropriate column once unblocked.
+1. Update subtask checkboxes to reflect reality.
+2. Append a `Development Log` entry: what was done, key decisions, where it stopped, next step.
+3. Make `status` in the issue file and the card's row in `board.md` agree.
+4. Move to `Done` only if the Definition of Done passes; otherwise leave it in `Todo` with the resume note in the log.
 
 ## Default roadmap.md template
 
@@ -245,7 +170,7 @@ When initializing the workflow, create `docs/kanban/roadmap.md` like this and ad
 ```markdown
 # Roadmap
 
-This roadmap preserves long-term goals and milestone direction. Detailed executable task cards live in `docs/kanban/issues/` and are tracked in `docs/kanban/board.md`.
+This roadmap preserves long-term goals and milestone direction. Executable task cards live in `docs/kanban/issues/` and are tracked in `docs/kanban/board.md`.
 
 ## Planning Policy
 
@@ -295,42 +220,18 @@ When initializing the workflow, create `docs/kanban/board.md` like this:
 ```markdown
 # Kanban Board
 
-This board tracks project requirements and implementation tasks. Detailed task cards live in `docs/kanban/issues/`.
+Two columns only. Card details live in `docs/kanban/issues/<ID>-<slug>.md`.
+Moving a card means updating its row here and `status` in the issue file in the same operation.
 
-## Backlog
+## Todo
 
-| ID | Title | Priority | Size | Owner | Milestone | Dependencies |
-|---|---|---|---|---|---|---|
-
-## To Do
-
-| ID | Title | Priority | Size | Owner | Milestone | Dependencies |
-|---|---|---|---|---|---|---|
-
-## In Progress
-
-| ID | Title | Priority | Size | Owner | Milestone | Started |
-|---|---|---|---|---|---|---|
-
-## In Review
-
-| ID | Title | Priority | Size | Developer | Reviewer | Review Status |
-|---|---|---|---|---|---|---|
-
-## Testing / QA
-
-| ID | Title | Priority | Size | Developer | QA | QA Status |
-|---|---|---|---|---|---|---|
-
-## Blocked
-
-| ID | Title | Priority | Size | Owner | Blocker | Blocked Since |
-|---|---|---|---|---|---|---|
+| ID | Title | Priority | Size | Blocked | Dependencies |
+|---|---|---|---|---|---|
 
 ## Done
 
-| ID | Title | Priority | Size | Owner | Milestone | Done At |
-|---|---|---|---|---|---|---|
+| ID | Title | Priority | Done At |
+|---|---|---|---|
 ```
 
 ## Default issue-template.md
@@ -338,167 +239,104 @@ This board tracks project requirements and implementation tasks. Detailed task c
 When initializing the workflow, create `docs/kanban/templates/issue-template.md` like this:
 
 ```markdown
-# <ID>: <Title>
-
-## Metadata
-
-- ID: <ID>
-- Title: <Title>
-- Type: Feature | Bug | Refactor | Test | Docs | Release | Chore
-- Priority: P0 | P1 | P2 | P3
-- Status: Backlog | To Do | In Progress | In Review | Testing / QA | Blocked | Done
-- Size: S | M | L
-- Milestone: <milestone>
-- Developer: <name or TBD>
-- Reviewer: <name or TBD>
-- QA: <name or TBD>
-- Maintainer: <name or TBD>
-- Created: YYYY-MM-DD
-- Updated: YYYY-MM-DD
+---
+id: <ID>
+title: <title>
+type: feature          # feature | bug | refactor | test | docs | release | chore
+priority: P1           # P0 | P1 | P2 | P3
+size: M                # S | M | L
+status: todo           # todo | done
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+blocked: none          # none, or a mapping: reason / unblock / owner
+---
 
 ## Goal
 
-Describe the user-visible or engineering goal in one or two paragraphs.
+<The user-visible or engineering outcome, one or two sentences.>
 
 ## Background
 
-Explain why this task exists, what problem it solves, and any relevant context.
-
-## Scope
-
-### In Scope
-
-- [ ] <included work>
-
-### Out of Scope
-
-- <explicitly excluded work>
-
-## Subtasks
-
-- [ ] <subtask 1>
-- [ ] <subtask 2>
+<Optional. Why this task exists and relevant context.>
 
 ## Acceptance Criteria
 
-- [ ] <criterion 1>
-- [ ] <criterion 2>
+- [ ] <outcome-focused criterion>
+
+## Subtasks
+
+- [ ] <subtask>
+
+## Dependencies
+
+- <dependency or `none`>
 
 ## Test Cases
 
-### TC-001: <test case name>
+### TC-001: <name>
 
 Steps:
 1. <step>
-2. <step>
 
 Expected:
 - <expected result>
 
-## Related Files
-
-- `<path/to/file>`
-
-## Dependencies
-
-- <dependency or `None`>
+<!-- If tests do not apply, replace this section with a one-line reason. -->
 
 ## Development Log
 
 ### YYYY-MM-DD
 
-- <implementation note, problem encountered, or decision made>
-
-## Review Notes
-
-- Status: Not Reviewed | Approved | Request Changes
-- Reviewer: <name>
-- Notes:
-  - <note>
-
-## QA Notes
-
-- Status: Not Started | In Progress | QA Passed | QA Failed
-- QA: <name>
-- Results:
-  - <result>
+- <what was done, decisions, where it stopped, next step>
 
 ## Bugs
 
 | ID | Severity | Description | Status | Resolution |
 |---|---|---|---|---|
 
-## Acceptance Notes
+## Verification
 
-- Status: Not Accepted | Accepted | Rejected
-- Maintainer: <name>
-- Notes:
-  - <note>
+- Related files: `<path/to/file>`
+- How to run/verify: <commands or steps>
+- Results: <actual results, or reason not run>
 ```
 
 ## Operating procedure
 
-### Initialize Kanban
-
-When the user asks to initialize this workflow:
+### Initialize
 
 1. Check whether `docs/kanban/` exists.
-2. If missing, create:
-   - `docs/kanban/roadmap.md`
-   - `docs/kanban/board.md`
-   - `docs/kanban/issues/`
-   - `docs/kanban/templates/issue-template.md`
-3. If files already exist, read them before editing.
-4. Preserve existing roadmap items and tasks unless the user explicitly asks to rewrite.
+2. If missing, create `roadmap.md`, `board.md`, `issues/`, and `templates/issue-template.md` from the templates above.
+3. If files exist, read them before editing; preserve existing content unless the user asks to rewrite.
+4. If an existing board has more columns than `Todo | Done` (for example from an older version of this skill), collapse it: cards in Backlog/To Do go to `Todo`; cards in In Progress/Review/QA/Blocked go to `Todo` with their progress preserved in the issue file plus a `blocked` field if stuck; Done stays `Done`. Report the migration.
 5. Report created or updated files.
 
-### Create new task cards
+### Create cards
 
-When creating task cards:
+1. Read `roadmap.md` and `board.md` first if they exist.
+2. Prefer rolling refinement: detailed cards for near-term work only.
+3. Assign a stable ID and slug; create the issue file from the template.
+4. Fill only the creation-stage fields (front matter, Goal, Acceptance Criteria). Leave the remaining sections in place.
+5. Add the row to `Todo` in `board.md` — the row and the front matter `status` must agree.
+6. If the card came from a roadmap item, update the roadmap line to reference the new ID.
 
-1. Read `docs/kanban/roadmap.md` and `docs/kanban/board.md` first if they exist.
-2. Prefer rolling refinement: create detailed cards for near-term work, not every long-term roadmap idea.
-3. Assign a stable ID and slug.
-4. Create one issue file under `docs/kanban/issues/`.
-5. Add the task to the requested board column, usually `Backlog` or `To Do`.
-6. Ensure the issue file and `board.md` status match.
-7. Include realistic Acceptance Criteria and Test Cases. If tests do not apply, explain why.
-8. If a detailed card came from a roadmap item, update the roadmap candidate task line to reference the new ID.
+### Move Todo → Done
 
-### Move tasks between statuses
+1. Walk the Definition of Done checklist against the issue file; tick every box and record evidence as you go.
+2. If something fails, fix it first, or record it as a deferred `P1`/`P2` bug with rationale. Never tick a box that is not true.
+3. Set `status: done` and refresh `updated` in the issue file, and move the row to `Done` with the date — both places, one operation.
 
-When moving a task:
+### Handle blocked work
 
-1. Read `board.md` and the task issue file.
-2. Check the status transition rules.
-3. Update `board.md` by moving the row to the target column.
-4. Update the issue file metadata `Status` and `Updated` date.
-5. Add a log entry explaining the transition.
-6. If the transition requires review, QA, or acceptance notes, add them.
-
-### During implementation
-
-When working on a task managed by this Kanban:
-
-1. Move the card to `In Progress` if it is not already there.
-2. Implement the work.
-3. Update the task's Development Log with key decisions and problems.
-4. Add/update tests where applicable.
-5. Run relevant checks.
-6. Move to `In Review` with a PR-equivalent review summary.
-7. Simulate Reviewer if requested or if this is a solo-agent workflow.
-8. Move to `Testing / QA` after approval.
-9. Execute test cases as QA and record results/bugs.
-10. Move to `Done` only after acceptance criteria are verified.
+1. Fill the `blocked` field (reason / unblock / owner); keep the card in `Todo` and fill its `Blocked` board cell.
+2. Tell the user what is needed to unblock.
+3. Clear the field when resolved.
 
 ## Good practices
 
-- Keep `roadmap.md` as the durable home for long-term goals and milestone direction.
-- Keep `board.md` concise; put task details in issue files.
-- Do not bury critical requirements only in chat. Persist near-term work in issue files and long-term direction in `roadmap.md`.
-- Do not create detailed cards for every future idea at once; use rolling refinement from roadmap to issue cards.
-- Prefer splitting `L` tasks into smaller `S` or `M` tasks.
-- Keep Acceptance Criteria outcome-focused.
-- Keep Test Cases executable: steps plus expected results.
-- Record important implementation surprises in `Development Log` so future agents can continue safely.
-- If the agent is simulating roles, label entries clearly, for example: `Reviewer: ZCode (simulated)`.
+- `roadmap.md` is the durable home for long-term goals; never store long-term direction only in chat.
+- Keep `board.md` lean — it is an index. Details and history belong in issue files.
+- Record implementation surprises in the `Development Log` so a future session can resume safely.
+- Keep acceptance criteria outcome-focused and test cases executable (steps plus expected result).
+- Split `L` work into independently acceptable `S`/`M` cards instead of carrying it as one card.
+- If you cannot verify something yourself, say so and ask the user — do not invent a pass.
